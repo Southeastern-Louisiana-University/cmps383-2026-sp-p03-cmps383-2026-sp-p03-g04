@@ -19,8 +19,12 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
+<<<<<<< HEAD
       "predictiveBackGestureEnabled": false,
       "package": "com.selu383.sp26.p03.mobile.g04"
+=======
+      "package": "com.selu383.sp26.p03.g04"
+>>>>>>> origin/WinterGreenLeaves-patch-1
     },
     "web": {
       "output": "static",
@@ -34,23 +38,28 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
+          "backgroundColor": "#ffffff"
         }
       ]
     ],
+<<<<<<< HEAD
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
     },
+=======
+    "owner": "seluexpodude",
+>>>>>>> origin/WinterGreenLeaves-patch-1
     "extra": {
       "router": {},
       "eas": {
         "projectId": "896ce284-a765-48ec-95ab-7753f6009fd0"
       }
+<<<<<<< HEAD
     },
     "owner": "seluexpodude"
+=======
+    }
+>>>>>>> origin/WinterGreenLeaves-patch-1
   }
 }

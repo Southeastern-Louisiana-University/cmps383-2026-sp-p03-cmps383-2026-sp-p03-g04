@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - main
+      - WinterGreenLeaves-patch-1
 jobs:
   update:
     runs-on: ubuntu-latest

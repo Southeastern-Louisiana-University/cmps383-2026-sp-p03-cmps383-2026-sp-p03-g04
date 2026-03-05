@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Selu383.SP26.Api/Selu383.SP26.Api.csproj" />
+  <Project Path="Selu383.SP26.Tests/Selu383.SP26.Tests.csproj" />
+  <Project Path="Selu383.SP26.Web/Selu383.SP26.Web.esproj" />
+</Solution>
