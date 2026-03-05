@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - WinterGreenLeaves-patch-1
+      - mobile-setup
 jobs:
   update:
     runs-on: ubuntu-latest
