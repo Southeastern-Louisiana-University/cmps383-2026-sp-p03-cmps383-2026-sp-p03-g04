@@ -29,26 +29,6 @@ Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = "Selu383.SP26.Mobile", "Selu
 		VWDPort = "63908"
 	EndProjectSection
 EndProject
-Project("{E24C65DC-7377-472B-9ABA-BC803B73C61A}") = ".github", ".github\", "{1E739FEA-D6DD-4C18-FFAC-E14BB4D2A247}"
-	ProjectSection(WebsiteProperties) = preProject
-		TargetFrameworkMoniker = ".NETFramework,Version%3Dv4.8"
-		Debug.AspNetCompiler.VirtualPath = "/localhost_58335"
-		Debug.AspNetCompiler.PhysicalPath = ".github\"
-		Debug.AspNetCompiler.TargetPath = "PrecompiledWeb\localhost_58335\"
-		Debug.AspNetCompiler.Updateable = "true"
-		Debug.AspNetCompiler.ForceOverwrite = "true"
-		Debug.AspNetCompiler.FixedNames = "false"
-		Debug.AspNetCompiler.Debug = "True"
-		Release.AspNetCompiler.VirtualPath = "/localhost_58335"
-		Release.AspNetCompiler.PhysicalPath = ".github\"
-		Release.AspNetCompiler.TargetPath = "PrecompiledWeb\localhost_58335\"
-		Release.AspNetCompiler.Updateable = "true"
-		Release.AspNetCompiler.ForceOverwrite = "true"
-		Release.AspNetCompiler.FixedNames = "false"
-		Release.AspNetCompiler.Debug = "False"
-		VWDPort = "58335"
-	EndProjectSection
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -73,10 +53,6 @@ Global
 		{7CA943F7-DC6F-70AA-123F-CED2DBB56941}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7CA943F7-DC6F-70AA-123F-CED2DBB56941}.Release|Any CPU.ActiveCfg = Debug|Any CPU
 		{7CA943F7-DC6F-70AA-123F-CED2DBB56941}.Release|Any CPU.Build.0 = Debug|Any CPU
-		{1E739FEA-D6DD-4C18-FFAC-E14BB4D2A247}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1E739FEA-D6DD-4C18-FFAC-E14BB4D2A247}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1E739FEA-D6DD-4C18-FFAC-E14BB4D2A247}.Release|Any CPU.ActiveCfg = Debug|Any CPU
-		{1E739FEA-D6DD-4C18-FFAC-E14BB4D2A247}.Release|Any CPU.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
