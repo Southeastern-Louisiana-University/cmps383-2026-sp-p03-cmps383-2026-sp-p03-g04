@@ -8,13 +8,13 @@
 	display: flex;
 	justify-content: center;
 	width: 100%;
-	background-color: #050505;
+	background-color: var(--app-bg);
 }
 
 body {
-	background-color: #000000;
+	background-color: var(--bg);
 	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-	color: #ffffff;
+	color: var(--text);
 }
 
 .app-container {
@@ -23,7 +23,7 @@ body {
 	height: 100vh;
 	width: 100%;
 	max-width: 480px;
-	background-color: #000000;
+    background-color: var(--app-bg);
 	position: relative;
 	box-shadow: 0 0 30px rgba(34, 211, 238, 0.15);
 	overflow: hidden;
@@ -31,27 +31,27 @@ body {
 
 /* --- THEME OUTLINES & GLOWS --- */
 .regular-outline {
-	border: 1px solid #333333;
+	border: 1px solid var(--border);
 	transition: border-color 0.3s ease;
 }
 
-	.regular-outline:hover {
-		border-color: #22d3ee;
+    .regular-outline:hover {
+		border-color: var(--primary);
 	}
 
 .glowing-outline {
-	border: 1px solid #22d3ee;
+	border: 1px solid var(--primary);
 	box-shadow: 0 0 12px rgba(34, 211, 238, 0.25);
 }
 
 .regular-outline-top {
-	border-top: 1px solid #333333;
+	border-top: 1px solid var(--border);
 }
 
 /* --- TOAST & PROMO --- */
 .promo-banner {
-	background-color: #22d3ee;
-	color: #000000;
+	background-color: var(--primary);
+	color: var(--promo-text);
 	text-align: center;
 	padding: 10px 12px;
 	font-size: 14px;
@@ -80,8 +80,8 @@ body {
 	top: 20px;
 	left: 50%;
 	transform: translateX(-50%);
-	background-color: #22d3ee;
-	color: #000000;
+	background-color: var(--primary);
+	color: var(--promo-text);
 	padding: 12px 24px;
 	border-radius: 8px;
 	font-weight: bold;
@@ -108,15 +108,15 @@ body {
 	padding: 24px 20px 12px 20px;
 }
 
-	.header h1 {
-		color: #ffffff;
+    .header h1 {
+		color: var(--text);
 		font-size: 28px;
 		margin-bottom: 4px;
 		letter-spacing: -0.5px;
 	}
 
 	.header p {
-		color: #888888;
+		color: var(--muted);
 		font-size: 15px;
 	}
 
@@ -130,7 +130,7 @@ body {
 
 .section-title {
 	font-size: 18px;
-	color: #ffffff;
+	color: var(--text);
 	margin-bottom: 12px;
 	text-transform: uppercase;
 	letter-spacing: 1px;
@@ -145,7 +145,7 @@ body {
 }
 
 .status-card {
-	background-color: #0a0a0a;
+	background-color: var(--card-bg);
 	padding: 16px;
 	border-radius: 12px;
 }
@@ -157,14 +157,14 @@ body {
 	margin-bottom: 8px;
 }
 
-	.status-header h3 {
+    .status-header h3 {
 		font-size: 16px;
-		color: #ffffff;
+		color: var(--text);
 	}
 
 .wait-time {
-	background-color: rgba(34, 211, 238, 0.1);
-	color: #22d3ee;
+    background-color: rgba(34, 211, 238, 0.1);
+	color: var(--text);
 	padding: 4px 8px;
 	border-radius: 6px;
 	font-size: 12px;
@@ -172,7 +172,7 @@ body {
 }
 
 .status-card p {
-	color: #888888;
+	color: var(--muted);
 	font-size: 14px;
 	margin-bottom: 12px;
 }
@@ -180,7 +180,7 @@ body {
 .text-btn {
 	background: none;
 	border: none;
-	color: #22d3ee;
+	color: var(--primary);
 	font-size: 13px;
 	font-weight: bold;
 	cursor: pointer;
@@ -209,15 +209,15 @@ body {
 	}
 
 .primary-action {
-	background-color: #22d3ee;
-	color: #000000;
+	background-color: var(--primary);
+	color: var(--button-contrast);
 	border: none;
 }
 
 .secondary-action {
 	background-color: transparent;
-	color: #22d3ee;
-	border: 1px solid #22d3ee;
+	color: var(--primary);
+	border: 1px solid var(--primary);
 }
 
 /* --- CARDS --- */
@@ -227,18 +227,18 @@ body {
 	align-items: center;
 	padding: 16px;
 	margin-bottom: 16px;
-	background-color: #0a0a0a;
+	background-color: var(--card-bg);
 	border-radius: 12px;
 }
 
 .coffee-info h3 {
-	color: #ffffff;
+	color: var(--text);
 	font-size: 16px;
 	margin-bottom: 4px;
 }
 
 .coffee-info p {
-	color: #888888;
+	color: var(--muted);
 	font-size: 13px;
 	margin-bottom: 8px;
 	max-width: 210px;
@@ -247,14 +247,14 @@ body {
 
 .price {
 	font-weight: bold;
-	color: #22d3ee;
+	color: var(--primary);
 	font-size: 15px;
 }
 
 .order-btn {
 	background-color: transparent;
-	color: #22d3ee;
-	border: 1px solid #22d3ee;
+	color: var(--primary);
+	border: 1px solid var(--primary);
 	padding: 8px 16px;
 	border-radius: 8px;
 	font-weight: bold;
@@ -263,20 +263,20 @@ body {
 }
 
 	.order-btn:hover {
-		background-color: #22d3ee;
-		color: #000000;
+		background-color: var(--primary);
+		color: var(--button-contrast);
 	}
 
 /* --- RESERVATIONS --- */
 .reservation-card {
-	background-color: #0a0a0a;
+	background-color: var(--card-bg);
 	padding: 20px;
 	border-radius: 12px;
 }
 
-	.reservation-card label {
+    .reservation-card label {
 		display: block;
-		color: #888888;
+		color: var(--muted);
 		font-weight: 600;
 		font-size: 14px;
 		margin-bottom: 8px;
@@ -296,26 +296,26 @@ body {
 	flex: 1;
 	padding: 12px 0;
 	border-radius: 8px;
-	border: 1px solid #333333;
-	background-color: #000000;
-	color: #ffffff;
+	border: 1px solid var(--border);
+	background-color: var(--app-bg);
+	color: var(--text);
 	font-weight: bold;
 	cursor: pointer;
 }
 
 .active-party {
-	border-color: #22d3ee;
+	border-color: var(--primary);
 	box-shadow: 0 0 8px rgba(34, 211, 238, 0.2);
-	color: #22d3ee;
+	color: var(--primary);
 }
 
 .form-input {
 	width: 100%;
 	padding: 12px;
 	border-radius: 8px;
-	border: 1px solid #333333;
-	background-color: #000000;
-	color: #ffffff;
+	border: 1px solid var(--border);
+	background-color: var(--app-bg);
+	color: var(--text);
 	font-size: 16px;
 	font-family: inherit;
 	color-scheme: dark;
@@ -323,7 +323,7 @@ body {
 
 /* --- CART PAGE --- */
 .receipt-card {
-	background-color: #0a0a0a;
+	background-color: var(--card-bg);
 	padding: 20px;
 	border-radius: 12px;
 }
@@ -332,13 +332,13 @@ body {
 	display: flex;
 	justify-content: space-between;
 	margin-bottom: 12px;
-	color: #ffffff;
+	color: var(--text);
 	font-size: 15px;
 }
 
 .receipt-divider {
 	height: 1px;
-	background-color: #333333;
+	background-color: var(--border);
 	margin: 16px 0;
 }
 
@@ -370,8 +370,8 @@ body {
 	width: 64px;
 	height: 64px;
 	border-radius: 50%;
-	background-color: #0a0a0a;
-	color: #22d3ee;
+	background-color: var(--card-bg);
+	color: var(--primary);
 	display: flex;
 	align-items: center;
 	justify-content: center;
@@ -380,25 +380,25 @@ body {
 }
 
 .profile-info h2 {
-	color: #ffffff;
+    color: var(--text);
 	font-size: 22px;
 	margin-bottom: 4px;
 }
 
 .profile-info p {
-	color: #888888;
+    color: var(--muted);
 	font-size: 14px;
 }
 
 .rewards-card {
-	background-color: #0a0a0a;
+	background-color: var(--card-bg);
 	padding: 24px 20px;
 	border-radius: 12px;
 	text-align: center;
 }
 
 	.rewards-card h3 {
-		color: #ffffff;
+     color: var(--text);
 		margin-bottom: 12px;
 		font-size: 18px;
 		text-transform: uppercase;
@@ -412,26 +412,26 @@ body {
 .points-number {
 	font-size: 36px;
 	font-weight: bold;
-	color: #22d3ee;
+	color: var(--primary);
 	display: block;
 	text-shadow: 0 0 12px rgba(34, 211, 238, 0.3);
 }
 
 .points-label {
-	color: #888888;
+	color: var(--muted);
 	font-size: 14px;
 }
 
 .progress-bar-bg {
 	height: 8px;
-	background-color: #333333;
+	background-color: var(--border);
 	border-radius: 4px;
 	overflow: hidden;
 }
 
 .progress-bar-fill {
 	height: 100%;
-	background-color: #22d3ee;
+  background-color: var(--primary);
 	box-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
 	border-radius: 4px;
 }
@@ -443,8 +443,8 @@ body {
 }
 
 .settings-btn {
-	background-color: #0a0a0a;
-	color: #ffffff;
+	background-color: var(--card-bg);
+	color: var(--text);
 	padding: 16px;
 	border-radius: 8px;
 	text-align: left;
@@ -457,7 +457,7 @@ body {
 
 	.settings-btn::after {
 		content: '>';
-		color: #555555;
+		color: var(--muted);
 		font-weight: bold;
 	}
 
@@ -469,7 +469,7 @@ body {
 	display: flex;
 	justify-content: space-around;
 	padding: 16px 0;
-	background-color: #000000;
+	background-color: var(--nav-bg);
 }
 
 .nav-btn {
@@ -477,20 +477,20 @@ body {
 	border: none;
 	font-size: 14px;
 	font-weight: 600;
-	color: #555555;
+	color: var(--muted);
 	cursor: pointer;
 	position: relative;
 	transition: color 0.2s;
 }
 
-	.nav-btn.active {
-		color: #22d3ee;
+    .nav-btn.active {
+		color: var(--primary);
 		text-shadow: 0 0 10px rgba(34, 211, 238, 0.3);
 	}
 
 .cart-badge {
-	background-color: #22d3ee;
-	color: #000000;
+	background-color: var(--primary);
+	color: var(--button-contrast);
 	border-radius: 50%;
 	padding: 2px 6px;
 	font-size: 11px;

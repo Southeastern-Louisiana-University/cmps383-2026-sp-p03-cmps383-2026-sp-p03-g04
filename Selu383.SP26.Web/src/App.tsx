@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+﻿import { useState, useEffect, useRef } from 'react';
 import './App.css';
 
 type CartItem = { name: string; price: number };
@@ -22,6 +22,18 @@ function App() {
     const [resSize, setResSize] = useState(2);
     const [resTime, setResTime] = useState('');
 
+    // Theme (light / dark) state persisted to localStorage
+    const [theme, setTheme] = useState<'light' | 'dark'>(() => {
+        try {
+            const saved = localStorage.getItem('theme');
+            if (saved === 'light' || saved === 'dark') return saved;
+        } catch (e) {
+            // ignore
+        }
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) return 'light';
+        return 'dark';
+    });
+
     //State for the rotating promo banner
 
     const [promoIndex, setPromoIndex] = useState(0);
@@ -34,6 +46,25 @@ function App() {
         }, 4000);
         return () => clearInterval(interval);
     }, []);
+
+    // apply theme to <html> and persist
+    useEffect(() => {
+        try {
+            if (theme === 'light') {
+                document.documentElement.setAttribute('data-theme', 'light');
+                document.documentElement.setAttribute('data-user-theme', 'light');
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                document.documentElement.removeAttribute('data-user-theme');
+            }
+            localStorage.setItem('theme', theme);
+        } catch (e) {
+            // ignore
+        }
+    }, [theme]);
+
+    // show/hide application preferences panel
+    const [showAppPrefs, setShowAppPrefs] = useState(false);
 
     const cartTotal = cartItems.reduce((sum, item) => sum + item.price, 0);
 
@@ -69,6 +100,24 @@ function App() {
             setToastMessage('');
             setActiveTab('Home');
         }, 2000);
+    };
+
+    // Ref for the time input so we can focus/open the picker when the surrounding box is clicked
+    const timeInputRef = useRef<HTMLInputElement | null>(null);
+
+    const openTimePicker = () => {
+        const el = timeInputRef.current as any;
+        if (!el) return;
+        // Preferred modern API: showPicker (supported in some browsers)
+        if (typeof el.showPicker === 'function') {
+            try {
+                el.showPicker();
+                return;
+            } catch (e) {
+                // fall through to focus
+            }
+        }
+        el.focus();
     };
 
     return (
@@ -193,12 +242,15 @@ function App() {
                             </div>
 
                             <label>Time Today</label>
-                            <input
-                                type="time"
-                                className="form-input"
-                                value={resTime}
-                                onChange={(e) => setResTime(e.target.value)}
-                            />
+                            <div onClick={openTimePicker} style={{ display: 'block' }}>
+                                <input
+                                    type="time"
+                                    className="form-input"
+                                    ref={timeInputRef}
+                                    value={resTime}
+                                    onChange={(e) => setResTime(e.target.value)}
+                                />
+                            </div>
 
                             <button className="action-btn primary-action" style={{ width: '100%', marginTop: '24px' }} onClick={handleReserve}>
                                 Confirm Reservation
@@ -276,7 +328,20 @@ function App() {
                         <div className="settings-list">
                             <button className="settings-btn regular-outline">Payment Methods</button>
                             <button className="settings-btn regular-outline">Order History</button>
-                            <button className="settings-btn regular-outline">App Preferences</button>
+                            <button className="settings-btn regular-outline" onClick={() => setShowAppPrefs(prev => !prev)}>
+                                App Preferences
+                                <span style={{ opacity: 0.85, marginLeft: 8 }}>{showAppPrefs ? '▾' : '▸'}</span>
+                            </button>
+
+                            {showAppPrefs && (
+                                <div className="reservation-card regular-outline" style={{ marginTop: '12px' }}>
+                                    <label>Theme</label>
+                                    <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                                        <button className={`action-btn ${theme === 'light' ? 'primary-action' : ''}`} onClick={() => setTheme('light')}>Light</button>
+                                        <button className={`action-btn ${theme === 'dark' ? 'primary-action' : ''}`} onClick={() => setTheme('dark')}>Dark</button>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </main>
                 </>
