@@ -3,9 +3,23 @@
   line-height: 1.5;
   font-weight: 400;
 
+  /* Theme variables (dark defaults) */
+  --bg: #000000;
+  --app-bg: #000000;
+  --text: #ffffff;
+  --muted: #888888;
+  --primary: #22d3ee;
+  --card-bg: #0a0a0a;
+  --border: #333333;
+  --button-bg: #1a1a1a;
+  --button-text: #ffffff;
+  --button-contrast: #000000;
+  --nav-bg: #000000;
+  --promo-text: #000000;
+
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color: var(--text);
+  background-color: var(--bg);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -15,11 +29,12 @@
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: var(--primary);
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
+  color: var(--primary);
+  opacity: 0.9;
 }
 
 body {
@@ -42,27 +57,41 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: var(--button-bg);
+  color: var(--button-text);
   cursor: pointer;
   transition: border-color 0.25s;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: var(--primary);
 }
 button:focus,
 button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
+/* Light theme override when html[data-theme="light"] is set */
+html[data-theme="light"] {
+  --bg: #ffffff;
+  --app-bg: #ffffff;
+  --text: #213547;
+  --muted: #666666;
+  --primary: #646cff;
+  --card-bg: #f9f9f9;
+  --border: #dddddd;
+  --button-bg: #f9f9f9;
+  --button-text: #213547;
+  --button-contrast: #ffffff;
+  --nav-bg: #ffffff;
+  --promo-text: #000000;
+
+  color: var(--text);
+  background-color: var(--bg);
+}
+
 @media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
+  /* If user prefers light and no explicit choice, set light theme on html */
+  :root:not([data-user-theme]) {
+    /* no-op: system preference handled in JS; keep CSS fallback */
   }
 }
