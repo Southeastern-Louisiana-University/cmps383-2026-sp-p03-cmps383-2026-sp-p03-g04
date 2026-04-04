@@ -1,13 +1,12 @@
 ﻿import { useState, useEffect, useRef } from 'react';
 import './App.css';
+import { menuData, type MenuItem } from './data/menu';
 
-type CartItem = { name: string; price: number };
-
-// The list of messages for our rotating banner
+type CartItem = { name: string; price: number; customizations?: string[] };
 
 const PROMOS = [
     '📱 App Exclusive: 20% off your first mobile order!',
-    '☕ Double Bits Happy Hour: 2PM - 4PM',
+    '☕ Double Bytes Happy Hour: 2PM - 4PM',
     '✨ Try the new Iced Cyan Macchiato today!'
 ];
 
@@ -17,28 +16,43 @@ function App() {
     const [toastMessage, setToastMessage] = useState('');
 
     const [activeOrder, setActiveOrder] = useState<{ itemCount: number; waitTime: number } | null>(null);
-    const [reservation, setReservation] = useState<{ size: number; time: string } | null>(null);
+    const [reservation, setReservation] = useState<{ tableId: number; time: string } | null>(null);
+    const [pendingReservation, setPendingReservation] = useState<{ tableId: number; time: string } | null>(null);
 
-    const [resSize, setResSize] = useState(2);
     const [resTime, setResTime] = useState('');
+    const [selectedTable, setSelectedTable] = useState<number | null>(null);
 
-    // Theme (light / dark) state persisted to localStorage
+    // --- NEW FILTER STATE ---
+    const [selectedCategory, setSelectedCategory] = useState('All');
+    const categoryOptions = ['All', 'Drinks', 'Bagels', 'Savory Crepes', 'Sweet Crepes'];
+
+    const [tables, setTables] = useState(() => {
+        const randomStatus = () => Math.random() > 0.4 ? 'available' : 'occupied';
+        return [
+            { id: 1, label: 'T1', seats: 2, status: randomStatus() },
+            { id: 2, label: 'T2', seats: 2, status: randomStatus() },
+            { id: 3, label: 'T3', seats: 4, status: randomStatus() },
+            { id: 4, label: 'T4', seats: 4, status: randomStatus() },
+            { id: 5, label: 'T5', seats: 6, status: randomStatus() },
+            { id: 6, label: 'T6', seats: 2, status: randomStatus() },
+        ];
+    });
+
+    const [customizingItem, setCustomizingItem] = useState<MenuItem | null>(null);
+    const [selectedCustomizations, setSelectedCustomizations] = useState<Record<string, string>>({});
+
+    const [applyRewards, setApplyRewards] = useState(false);
+
     const [theme, setTheme] = useState<'light' | 'dark'>(() => {
         try {
             const saved = localStorage.getItem('theme');
             if (saved === 'light' || saved === 'dark') return saved;
-        } catch (e) {
-            // ignore
-        }
+        } catch (e) {}
         if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) return 'light';
         return 'dark';
     });
 
-    //State for the rotating promo banner
-
     const [promoIndex, setPromoIndex] = useState(0);
-
-    // Engine that rotates the banner every 4 seconds
 
     useEffect(() => {
         const interval = setInterval(() => {
@@ -47,7 +61,6 @@ function App() {
         return () => clearInterval(interval);
     }, []);
 
-    // apply theme to <html> and persist
     useEffect(() => {
         try {
             if (theme === 'light') {
@@ -58,20 +71,51 @@ function App() {
                 document.documentElement.removeAttribute('data-user-theme');
             }
             localStorage.setItem('theme', theme);
-        } catch (e) {
-            // ignore
-        }
+        } catch (e) {}
     }, [theme]);
 
-    // show/hide application preferences panel
     const [showAppPrefs, setShowAppPrefs] = useState(false);
 
     const cartTotal = cartItems.reduce((sum, item) => sum + item.price, 0);
+    const rewardsDiscount = applyRewards ? cartTotal * 0.10 : 0; 
+    const finalTotal = cartTotal - rewardsDiscount;
 
-    const handleOrder = (itemName: string, price: number) => {
-        setCartItems((prev) => [...prev, { name: itemName, price }]);
+    const handleOrder = (itemName: string, price: number, customStrings?: string[]) => {
+        setCartItems((prev) => [...prev, { name: itemName, price, customizations: customStrings }]);
         setToastMessage(`Added ${itemName} to cart!`);
         setTimeout(() => setToastMessage(''), 3000);
+    };
+
+    const openCustomization = (item: MenuItem) => {
+        setCustomizingItem(item);
+        const initialSelections: Record<string, string> = {};
+        item.customizations?.forEach(group => {
+            if (group.isRequired && group.options.length > 0) {
+                initialSelections[group.name] = group.options[0].name;
+            }
+        });
+        setSelectedCustomizations(initialSelections);
+    };
+
+    const handleConfirmCustomizedOrder = () => {
+        if (!customizingItem) return;
+
+        let finalPrice = customizingItem.price;
+        const customStrings: string[] = [];
+
+        customizingItem.customizations?.forEach(group => {
+            const selectedOptionName = selectedCustomizations[group.name];
+            if (selectedOptionName) {
+                const option = group.options.find(o => o.name === selectedOptionName);
+                if (option) {
+                    finalPrice += option.priceModifier;
+                    customStrings.push(`${group.name}: ${option.name}`);
+                }
+            }
+        });
+
+        handleOrder(customizingItem.name, finalPrice, customStrings);
+        setCustomizingItem(null);
     };
 
     const handleCheckout = () => {
@@ -80,53 +124,114 @@ function App() {
         const estimatedWait = Math.floor(Math.random() * (maxWait - minWait + 1)) + minWait;
 
         setActiveOrder({ itemCount: cartItems.length, waitTime: estimatedWait });
-        setToastMessage('Order sent to the barista!');
+        
+        if (pendingReservation) {
+            setReservation(pendingReservation);
+            setPendingReservation(null);
+        }
+
+        setToastMessage('Payment processed via Stripe! Order sent to barista.');
         setCartItems([]);
+        setApplyRewards(false);
         setTimeout(() => {
             setToastMessage('');
             setActiveTab('Home');
-        }, 2000);
+        }, 2500);
     };
 
     const handleReserve = () => {
+        if (cartItems.length === 0) {
+            setToastMessage('You must add items to your cart to reserve a table!');
+            setTimeout(() => setToastMessage(''), 3000);
+            return;
+        }
+
+        if (!selectedTable) {
+            setToastMessage('Please select an available table from the map!');
+            setTimeout(() => setToastMessage(''), 3000);
+            return;
+        }
+
         if (!resTime) {
             setToastMessage('Please select a time!');
             setTimeout(() => setToastMessage(''), 3000);
             return;
         }
-        setReservation({ size: resSize, time: resTime });
-        setToastMessage('Table reserved!');
+
+        const now = new Date();
+        const [hours, minutes] = resTime.split(':').map(Number);
+        const reserveDate = new Date();
+        reserveDate.setHours(hours, minutes, 0, 0);
+        const diffInMinutes = (reserveDate.getTime() - now.getTime()) / (1000 * 60);
+
+        if (diffInMinutes < 120) {
+            setToastMessage('Reservations must be made at least 2 hours in advance.');
+            setTimeout(() => setToastMessage(''), 3500);
+            return;
+        }
+
+        setPendingReservation({ tableId: selectedTable, time: resTime });
+        setToastMessage(`Table T${selectedTable} added to cart! Proceed to checkout.`);
+        
         setTimeout(() => {
             setToastMessage('');
-            setActiveTab('Home');
-        }, 2000);
+            setActiveTab('Cart');
+        }, 1500);
     };
 
-    // Ref for the time input so we can focus/open the picker when the surrounding box is clicked
     const timeInputRef = useRef<HTMLInputElement | null>(null);
-
     const openTimePicker = () => {
         const el = timeInputRef.current as any;
         if (!el) return;
-        // Preferred modern API: showPicker (supported in some browsers)
         if (typeof el.showPicker === 'function') {
-            try {
-                el.showPicker();
-                return;
-            } catch (e) {
-                // fall through to focus
-            }
+            try { el.showPicker(); return; } catch (e) {}
         }
         el.focus();
     };
+
+    // Determine which categories to loop through based on the filter
+    const displayCategories = selectedCategory === 'All' 
+        ? ['Drinks', 'Bagels', 'Savory Crepes', 'Sweet Crepes'] 
+        : [selectedCategory];
 
     return (
         <div className="app-container">
             {toastMessage && <div className="toast-notification">{toastMessage}</div>}
 
-            {/* --- ANIMATED PROMO BANNER --- */}
+            {customizingItem && (
+                <div className="modal-overlay">
+                    <div className="modal-content regular-outline">
+                        <h2>Customize {customizingItem.name}</h2>
+                        
+                        {customizingItem.customizations?.map(group => (
+                            <div key={group.name} className="customization-group">
+                                <label className="group-label">
+                                    {group.name} {group.isRequired && <span style={{color: '#ff4444'}}>*</span>}
+                                </label>
+                                <div className="options-list">
+                                    {group.options.map(option => (
+                                        <button
+                                            key={option.name}
+                                            className={`option-btn ${selectedCustomizations[group.name] === option.name ? 'selected-option' : ''}`}
+                                            onClick={() => setSelectedCustomizations(prev => ({ ...prev, [group.name]: option.name }))}
+                                        >
+                                            {option.name} 
+                                            {option.priceModifier > 0 && ` (+$${option.priceModifier.toFixed(2)})`}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+
+                        <div className="modal-actions" style={{display: 'flex', gap: '12px', marginTop: '24px'}}>
+                            <button className="action-btn secondary-action" style={{flex: 1}} onClick={() => setCustomizingItem(null)}>Cancel</button>
+                            <button className="action-btn primary-action" style={{flex: 1}} onClick={handleConfirmCustomizedOrder}>Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <div className="promo-banner">
-                {/* The 'key' tells React to re-trigger the animation every time the index changes */}
                 <span key={promoIndex} className="animated-promo">{PROMOS[promoIndex]}</span>
             </div>
 
@@ -155,9 +260,9 @@ function App() {
                                     <div className="status-card regular-outline">
                                         <div className="status-header">
                                             <h3>🪑 Table Reserved</h3>
-                                            <span className="wait-time">Today, {resTime}</span>
+                                            <span className="wait-time">Today, {reservation.time}</span>
                                         </div>
-                                        <p>Party of {reservation.size} • 📍 Campus Branch</p>
+                                        <p>Table T{reservation.tableId} • 📍 Campus Branch</p>
                                         <button className="text-btn" onClick={() => setReservation(null)}>Cancel Reservation</button>
                                     </div>
                                 )}
@@ -170,21 +275,25 @@ function App() {
                         </div>
 
                         <h2 className="section-title">Today's Specials</h2>
-                        <div className="coffee-card regular-outline">
-                            <div className="coffee-info">
-                                <h3>Iced Cyan Macchiato</h3>
-                                <p>Our signature espresso with a splash of blue curacao syrup and oat milk.</p>
-                                <span className="price">$5.50</span>
+                        
+                        {/* Applied menu-grid here so it looks good on laptops! */}
+                        <div className="menu-grid">
+                            <div className="coffee-card regular-outline">
+                                <div className="coffee-info">
+                                    <h3>Iced Cyan Macchiato</h3>
+                                    <p>Our signature espresso with a splash of blue curacao syrup and oat milk.</p>
+                                    <span className="price">$5.50</span>
+                                </div>
+                                <button className="order-btn" onClick={() => handleOrder('Iced Cyan Macchiato', 5.50)}>+ Add</button>
                             </div>
-                            <button className="order-btn" onClick={() => handleOrder('Iced Cyan Macchiato', 5.50)}>+ Add</button>
-                        </div>
-                        <div className="coffee-card regular-outline">
-                            <div className="coffee-info">
-                                <h3>Nitro Cold Brew</h3>
-                                <p>Smooth, creamy, and heavily caffeinated. On tap.</p>
-                                <span className="price">$4.75</span>
+                            <div className="coffee-card regular-outline">
+                                <div className="coffee-info">
+                                    <h3>Nitro Cold Brew</h3>
+                                    <p>Smooth, creamy, and heavily caffeinated. On tap.</p>
+                                    <span className="price">$4.75</span>
+                                </div>
+                                <button className="order-btn" onClick={() => handleOrder('Nitro Cold Brew', 4.75)}>+ Add</button>
                             </div>
-                            <button className="order-btn" onClick={() => handleOrder('Nitro Cold Brew', 4.75)}>+ Add</button>
                         </div>
                     </main>
                 </>
@@ -193,27 +302,105 @@ function App() {
             {/* --- MENU TAB --- */}
             {activeTab === 'Menu' && (
                 <>
-                    <header className="header">
-                        <h1>Full Menu</h1>
-                        <p>Handcrafted drinks & fresh pastries.</p>
+                    <header className="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px' }}>
+                        <div>
+                            <h1>Full Menu</h1>
+                            <p>Handcrafted drinks & fresh pastries.</p>
+                        </div>
+                        <button className="text-btn" style={{ fontSize: '12px', padding: '8px', border: '1px solid var(--border)', borderRadius: '6px' }} onClick={() => setActiveTab('Nutrition')}>
+                            Nutrition Info
+                        </button>
                     </header>
                     <main className="menu-container">
-                        <h2 className="section-title">Classics</h2>
-                        <div className="coffee-card regular-outline">
-                            <div className="coffee-info">
-                                <h3>Caramel Macchiato</h3>
-                                <p>Vanilla syrup, steamed milk, espresso, and caramel drizzle.</p>
-                                <span className="price">$4.75</span>
-                            </div>
-                            <button className="order-btn" onClick={() => handleOrder('Caramel Macchiato', 4.75)}>+ Add</button>
+                        
+                        {/* CATEGORY FILTER PILLS */}
+                        <div className="category-filters">
+                            {categoryOptions.map(cat => (
+                                <button 
+                                    key={cat} 
+                                    className={`filter-pill ${selectedCategory === cat ? 'active' : ''}`}
+                                    onClick={() => setSelectedCategory(cat)}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
                         </div>
-                        <div className="coffee-card regular-outline">
-                            <div className="coffee-info">
-                                <h3>Pour Over</h3>
-                                <p>Single-origin beans, slowly brewed to perfection.</p>
-                                <span className="price">$3.50</span>
+
+                        {displayCategories.map(category => (
+                            <div key={category}>
+                                <h2 className="section-title" style={{marginTop: '8px'}}>{category}</h2>
+                                {/* Applied menu-grid here so laptops show 2 columns! */}
+                                <div className="menu-grid">
+                                    {menuData.filter(item => item.category === category).map(item => (
+                                        <div key={item.id} className="coffee-card regular-outline">
+                                            <div className="coffee-info">
+                                                <h3>{item.name}</h3>
+                                                <p>{item.description}</p>
+                                                <span className="price">${item.price.toFixed(2)}</span>
+                                            </div>
+                                            <button 
+                                                className="order-btn" 
+                                                onClick={() => {
+                                                    if (item.customizations) {
+                                                        openCustomization(item);
+                                                    } else {
+                                                        handleOrder(item.name, item.price);
+                                                    }
+                                                }}
+                                            >
+                                                + Add
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                            <button className="order-btn" onClick={() => handleOrder('Pour Over', 3.50)}>+ Add</button>
+                        ))}
+                    </main>
+                </>
+            )}
+
+            {/* --- NUTRITION FACTS TAB --- */}
+            {activeTab === 'Nutrition' && (
+                <>
+                    <header className="header">
+                        <button className="text-btn" style={{ marginBottom: '12px', padding: 0 }} onClick={() => setActiveTab('Menu')}>← Back to Menu</button>
+                        <h1>Nutrition Facts</h1>
+                        <p>Standard dietary information for our items.</p>
+                    </header>
+                    <main className="menu-container">
+                        <div className="reservation-card regular-outline">
+                            <table style={{ width: '100%', textAlign: 'left', borderCollapse: 'collapse', fontSize: '14px' }}>
+                                <thead>
+                                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                                        <th style={{ padding: '8px 0' }}>Item</th>
+                                        <th style={{ padding: '8px 0' }}>Calories</th>
+                                        <th style={{ padding: '8px 0' }}>Sugar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                                        <td style={{ padding: '8px 0' }}>Iced Latte (Whole Milk)</td>
+                                        <td style={{ padding: '8px 0' }}>130</td>
+                                        <td style={{ padding: '8px 0' }}>11g</td>
+                                    </tr>
+                                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                                        <td style={{ padding: '8px 0' }}>Shaken Lemonade</td>
+                                        <td style={{ padding: '8px 0' }}>120</td>
+                                        <td style={{ padding: '8px 0' }}>27g</td>
+                                    </tr>
+                                    <tr style={{ borderBottom: '1px solid var(--border)' }}>
+                                        <td style={{ padding: '8px 0' }}>Breakfast Bagel</td>
+                                        <td style={{ padding: '8px 0' }}>450</td>
+                                        <td style={{ padding: '8px 0' }}>4g</td>
+                                    </tr>
+                                    <tr>
+                                        <td style={{ padding: '8px 0', opacity: 0.7 }} colSpan={3}>*More items coming soon...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <p style={{ fontSize: '12px', color: '#888', marginTop: '16px', lineHeight: '1.4' }}>
+                                Note: Customizations like alternative milks and syrups will alter the nutritional values.
+                            </p>
                         </div>
                     </main>
                 </>
@@ -224,24 +411,48 @@ function App() {
                 <>
                     <header className="header">
                         <h1>Book a Table</h1>
-                        <p>Secure your spot for meetings or studying.</p>
+                        <p>Select your table from the map below.</p>
                     </header>
                     <main className="menu-container">
                         <div className="reservation-card regular-outline">
-                            <label>Party Size</label>
-                            <div className="party-size-selector">
-                                {[1, 2, 3, 4].map(size => (
-                                    <button
-                                        key={size}
-                                        className={`party-btn ${resSize === size ? 'active-party' : ''}`}
-                                        onClick={() => setResSize(size)}
-                                    >
-                                        {size}{size === 4 ? '+' : ''}
-                                    </button>
-                                ))}
+                            
+                            <div className="map-legend">
+                                <span className="legend-item"><div className="color-box available"></div> Available</span>
+                                <span className="legend-item"><div className="color-box selected"></div> Selected</span>
+                                <span className="legend-item"><div className="color-box occupied"></div> Occupied</span>
                             </div>
 
-                            <label>Time Today</label>
+                            <div className="table-grid">
+                                {tables.map(table => {
+                                    const topChairs = Math.ceil(table.seats / 2);
+                                    const bottomChairs = Math.floor(table.seats / 2);
+                                    const isCircle = table.seats === 2;
+
+                                    return (
+                                        <button
+                                            key={table.id}
+                                            className={`table-btn ${selectedTable === table.id ? 'selected-table' : ''} ${table.status === 'occupied' ? 'occupied-table' : ''}`}
+                                            onClick={() => table.status !== 'occupied' && setSelectedTable(table.id)}
+                                            disabled={table.status === 'occupied'}
+                                        >
+                                            <div className="table-setup">
+                                                <div className="chair-row">
+                                                    {Array.from({ length: topChairs }).map((_, i) => <div key={`top-${i}`} className="chair"></div>)}
+                                                </div>
+                                                <div className={`table-core ${isCircle ? 'circle' : ''}`}>
+                                                    {table.label}
+                                                </div>
+                                                <div className="chair-row">
+                                                    {Array.from({ length: bottomChairs }).map((_, i) => <div key={`bot-${i}`} className="chair"></div>)}
+                                                </div>
+                                            </div>
+                                            <span className="table-seats">{table.seats} Seats</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            <label style={{ marginTop: '8px' }}>Time Today</label>
                             <div onClick={openTimePicker} style={{ display: 'block' }}>
                                 <input
                                     type="time"
@@ -268,21 +479,81 @@ function App() {
                         <p>Review your order before checkout.</p>
                     </header>
                     <main className="menu-container">
-                        {cartItems.length > 0 ? (
+                        {cartItems.length > 0 || pendingReservation ? (
                             <div className="receipt-card regular-outline">
+                                
+                                {pendingReservation && (
+                                    <>
+                                        <div className="receipt-item" style={{ color: 'var(--primary)', alignItems: 'flex-start' }}>
+                                            <div>
+                                                <span style={{ fontWeight: 'bold' }}>🪑 Table T{pendingReservation.tableId} Reservation</span>
+                                                <div style={{ fontSize: '12px', opacity: 0.8, marginTop: '2px' }}>Today at {pendingReservation.time}</div>
+                                            </div>
+                                            <button className="text-btn" style={{ fontSize: '12px', color: '#ff4444', padding: 0 }} onClick={() => setPendingReservation(null)}>Remove</button>
+                                        </div>
+                                        <div className="receipt-divider"></div>
+                                    </>
+                                )}
+
                                 {cartItems.map((item, index) => (
-                                    <div key={index} className="receipt-item">
-                                        <span>{item.name}</span>
-                                        <span>${item.price.toFixed(2)}</span>
+                                    <div key={index} style={{marginBottom: '12px'}}>
+                                        <div className="receipt-item">
+                                            <span style={{fontWeight: 'bold'}}>{item.name}</span>
+                                            <span>${item.price.toFixed(2)}</span>
+                                        </div>
+                                        {item.customizations?.map((customStr, i) => (
+                                            <div key={i} style={{fontSize: '12px', color: 'var(--text)', opacity: 0.7, marginLeft: '8px'}}>
+                                                - {customStr}
+                                            </div>
+                                        ))}
                                     </div>
                                 ))}
-                                <div className="receipt-divider"></div>
+                                
+                                {cartItems.length > 0 && <div className="receipt-divider"></div>}
+                                
+                                {cartItems.length > 0 && (
+                                    <>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+                                            <label style={{ fontSize: '14px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={applyRewards} 
+                                                    onChange={(e) => setApplyRewards(e.target.checked)} 
+                                                    style={{ accentColor: 'var(--primary)', width: '16px', height: '16px' }}
+                                                />
+                                                Use Byte Rewards
+                                            </label>
+                                            <span style={{ fontSize: '12px', color: '#888' }}>Max 10% off</span>
+                                        </div>
+
+                                        <div className="receipt-item">
+                                            <span>Subtotal</span>
+                                            <span>${cartTotal.toFixed(2)}</span>
+                                        </div>
+                                        
+                                        {applyRewards && (
+                                            <div className="receipt-item" style={{ color: '#4ade80' }}>
+                                                <span>Byte Discount (10%)</span>
+                                                <span>-${rewardsDiscount.toFixed(2)}</span>
+                                            </div>
+                                        )}
+
+                                        <div className="receipt-divider"></div>
+                                    </>
+                                )}
+
                                 <div className="receipt-item total-row">
                                     <span>Total</span>
-                                    <span className="price">${cartTotal.toFixed(2)}</span>
+                                    <span className="price">${finalTotal.toFixed(2)}</span>
                                 </div>
-                                <button className="action-btn primary-action checkout-btn glowing-outline" onClick={handleCheckout}>
-                                    Pay ${cartTotal.toFixed(2)}
+                                
+                                <button 
+                                    className="action-btn primary-action checkout-btn glowing-outline" 
+                                    style={{ background: '#635BFF', color: 'white', border: 'none' }}
+                                    onClick={handleCheckout}
+                                    disabled={cartItems.length === 0}
+                                >
+                                    {cartItems.length === 0 ? 'Add Food to Checkout' : `Checkout with Stripe • $${finalTotal.toFixed(2)}`}
                                 </button>
                             </div>
                         ) : (
@@ -316,12 +587,12 @@ function App() {
                             <h3>Byte Rewards</h3>
                             <div className="points-display">
                                 <span className="points-number">1,024</span>
-                                <span className="points-label">Bits Earned</span>
+                                <span className="points-label">Bytes Earned</span>
                             </div>
                             <div className="progress-bar-bg">
                                 <div className="progress-bar-fill" style={{ width: '75%' }}></div>
                             </div>
-                            <p style={{ fontSize: '13px', color: '#888', marginTop: '12px' }}>256 Bits away from a free coffee!</p>
+                            <p style={{ fontSize: '13px', color: '#888', marginTop: '12px' }}>256 Bytes away from a free coffee!</p>
                         </div>
 
                         <h2 className="section-title" style={{ marginTop: '32px' }}>Settings</h2>
@@ -353,7 +624,7 @@ function App() {
                 <button className={`nav-btn ${activeTab === 'Menu' ? 'active' : ''}`} onClick={() => setActiveTab('Menu')}>Menu</button>
                 <button className={`nav-btn ${activeTab === 'Reservations' ? 'active' : ''}`} onClick={() => setActiveTab('Reservations')}>Tables</button>
                 <button className={`nav-btn ${activeTab === 'Cart' ? 'active' : ''}`} onClick={() => setActiveTab('Cart')}>
-                    Cart {cartItems.length > 0 && <span className="cart-badge">{cartItems.length}</span>}
+                    Cart {(cartItems.length > 0 || pendingReservation) && <span className="cart-badge">{cartItems.length + (pendingReservation ? 1 : 0)}</span>}
                 </button>
                 <button className={`nav-btn ${activeTab === 'Profile' ? 'active' : ''}`} onClick={() => setActiveTab('Profile')}>Profile</button>
             </nav>
