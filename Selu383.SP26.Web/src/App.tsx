@@ -3,6 +3,7 @@ import './App.css';
 import { menuData, type MenuItem } from './data/menu';
 
 type CartItem = { name: string; price: number; customizations?: string[] };
+type CurrentUser = { id: number; userName: string; roles: string[] };
 
 const PROMOS = [
     '📱 App Exclusive: 20% off your first mobile order!',
@@ -14,6 +15,8 @@ function App() {
     const [activeTab, setActiveTab] = useState('Home');
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [toastMessage, setToastMessage] = useState('');
+    const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+    const [authLoading, setAuthLoading] = useState(false);
 
     const [activeOrder, setActiveOrder] = useState<{ itemCount: number; waitTime: number } | null>(null);
     const [reservation, setReservation] = useState<{ tableId: number; time: string } | null>(null);
@@ -26,7 +29,7 @@ function App() {
     const [selectedCategory, setSelectedCategory] = useState('All');
     const categoryOptions = ['All', 'Drinks', 'Bagels', 'Savory Crepes', 'Sweet Crepes'];
 
-    const [tables, setTables] = useState(() => {
+    const [tables] = useState(() => {
         const randomStatus = () => Math.random() > 0.4 ? 'available' : 'occupied';
         return [
             { id: 1, label: 'T1', seats: 2, status: randomStatus() },
@@ -60,6 +63,61 @@ function App() {
         }, 4000);
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        // If we've just returned from an external auth redirect, refresh "me".
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('auth') === 'success' || params.get('auth') === 'error') {
+            params.delete('auth');
+            const next = params.toString();
+            const nextUrl = `${window.location.pathname}${next ? `?${next}` : ''}${window.location.hash}`;
+            window.history.replaceState({}, '', nextUrl);
+        }
+
+        const loadMe = async () => {
+            setAuthLoading(true);
+            try {
+                const resp = await fetch('/api/authentication/me', { credentials: 'include' });
+                if (resp.ok) {
+                    const me = (await resp.json()) as CurrentUser;
+                    setCurrentUser(me);
+                } else {
+                    setCurrentUser(null);
+                }
+            } catch {
+                setCurrentUser(null);
+            } finally {
+                setAuthLoading(false);
+            }
+        };
+
+        void loadMe();
+    }, []);
+
+    const beginExternalAuth = (provider: 'Google' | 'Facebook') => {
+        const returnUrl = `${window.location.pathname}${window.location.search}${window.location.hash}` || '/';
+        window.location.href = `/api/authentication/external/${provider}?returnUrl=${encodeURIComponent(returnUrl)}`;
+    };
+
+    const logout = async () => {
+        setAuthLoading(true);
+        try {
+            const resp = await fetch('/api/authentication/logout', { method: 'POST', credentials: 'include' });
+            if (resp.ok) {
+                setCurrentUser(null);
+                setToastMessage('Logged out.');
+                setTimeout(() => setToastMessage(''), 2000);
+            } else {
+                setToastMessage('Logout failed.');
+                setTimeout(() => setToastMessage(''), 2500);
+            }
+        } catch {
+            setToastMessage('Logout failed.');
+            setTimeout(() => setToastMessage(''), 2500);
+        } finally {
+            setAuthLoading(false);
+        }
+    };
 
     useEffect(() => {
         try {
@@ -575,13 +633,46 @@ function App() {
                         <p>Manage your account and rewards.</p>
                     </header>
                     <main className="menu-container">
-                        <div className="profile-header">
-                            <div className="avatar glowing-outline">JM</div>
-                            <div className="profile-info">
-                                <h2>John M.</h2>
-                                <p>@jmontz125</p>
+                        {currentUser ? (
+                            <div className="profile-header">
+                                <div className="avatar glowing-outline">
+                                    {currentUser.userName.slice(0, 2).toUpperCase()}
+                                </div>
+                                <div className="profile-info">
+                                    <h2>{currentUser.userName}</h2>
+                                    <p>{currentUser.roles.length ? currentUser.roles.join(', ') : 'No roles'}</p>
+                                </div>
+                                <button
+                                    className="action-btn secondary-action"
+                                    style={{ marginLeft: 'auto' }}
+                                    onClick={logout}
+                                    disabled={authLoading}
+                                >
+                                    {authLoading ? 'Working…' : 'Logout'}
+                                </button>
                             </div>
-                        </div>
+                        ) : (
+                            <div className="reservation-card regular-outline" style={{ marginBottom: 16 }}>
+                                <h3 style={{ marginTop: 0 }}>Sign in</h3>
+                                <p style={{ marginTop: 8, opacity: 0.85 }}>Continue with a provider to create or access your account.</p>
+                                <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+                                    <button
+                                        className="action-btn primary-action"
+                                        onClick={() => beginExternalAuth('Google')}
+                                        disabled={authLoading}
+                                    >
+                                        Continue with Google
+                                    </button>
+                                    <button
+                                        className="action-btn secondary-action"
+                                        onClick={() => beginExternalAuth('Facebook')}
+                                        disabled={authLoading}
+                                    >
+                                        Continue with Facebook
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         <div className="rewards-card glowing-outline">
                             <h3>Byte Rewards</h3>
