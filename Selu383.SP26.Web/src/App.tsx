@@ -114,6 +114,8 @@ function App() {
     const [activeTab, setActiveTab] = useState('Home');
     const [cartItems, setCartItems] = useState<CartItem[]>([]);
     const [toastMessage, setToastMessage] = useState('');
+    const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
+    const [authLoading, setAuthLoading] = useState(false);
 
     const [activeOrder, setActiveOrder] = useState<{ itemCount: number; waitTime: number } | null>(null);
     const [reservation, setReservation] = useState<ReservationItem | null>(null);
@@ -207,6 +209,61 @@ function App() {
 
         return () => clearInterval(interval);
     }, []);
+
+    useEffect(() => {
+        // If we've just returned from an external auth redirect, refresh "me".
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('auth') === 'success' || params.get('auth') === 'error') {
+            params.delete('auth');
+            const next = params.toString();
+            const nextUrl = `${window.location.pathname}${next ? `?${next}` : ''}${window.location.hash}`;
+            window.history.replaceState({}, '', nextUrl);
+        }
+
+        const loadMe = async () => {
+            setAuthLoading(true);
+            try {
+                const resp = await fetch('/api/authentication/me', { credentials: 'include' });
+                if (resp.ok) {
+                    const me = (await resp.json()) as CurrentUser;
+                    setCurrentUser(me);
+                } else {
+                    setCurrentUser(null);
+                }
+            } catch {
+                setCurrentUser(null);
+            } finally {
+                setAuthLoading(false);
+            }
+        };
+
+        void loadMe();
+    }, []);
+
+    const beginExternalAuth = (provider: 'Google' | 'Facebook') => {
+        const returnUrl = `${window.location.pathname}${window.location.search}${window.location.hash}` || '/';
+        window.location.href = `/api/authentication/external/${provider}?returnUrl=${encodeURIComponent(returnUrl)}`;
+    };
+
+    const logout = async () => {
+        setAuthLoading(true);
+        try {
+            const resp = await fetch('/api/authentication/logout', { method: 'POST', credentials: 'include' });
+            if (resp.ok) {
+                setCurrentUser(null);
+                setToastMessage('Logged out.');
+                setTimeout(() => setToastMessage(''), 2000);
+            } else {
+                setToastMessage('Logout failed.');
+                setTimeout(() => setToastMessage(''), 2500);
+            }
+        } catch {
+            setToastMessage('Logout failed.');
+            setTimeout(() => setToastMessage(''), 2500);
+        } finally {
+            setAuthLoading(false);
+        }
+    };
 
     useEffect(() => {
         try {
