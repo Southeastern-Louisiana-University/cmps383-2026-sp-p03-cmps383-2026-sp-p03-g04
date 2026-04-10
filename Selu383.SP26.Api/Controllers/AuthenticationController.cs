@@ -136,6 +136,7 @@ public class AuthenticationController : ControllerBase
         {
             return BadRequest();
         }
+
         var result = await signInManager.CheckPasswordSignInAsync(user, dto.Password, true);
         if (!result.Succeeded)
         {
@@ -145,6 +146,40 @@ public class AuthenticationController : ControllerBase
         await signInManager.SignInAsync(user, false);
 
         var resultDto = await GetUserDto(userManager.Users).SingleAsync(x => x.UserName == user.UserName);
+        return Ok(resultDto);
+    }
+
+    [HttpPost("register")]
+    public async Task<ActionResult<UserDto>> Register(RegisterDto dto)
+    {
+        var existingUser = await userManager.FindByNameAsync(dto.UserName);
+        if (existingUser != null)
+        {
+            return BadRequest("That username is already taken.");
+        }
+
+        var newUser = new User
+        {
+            UserName = dto.UserName,
+        };
+
+        var createResult = await userManager.CreateAsync(newUser, dto.Password);
+        if (!createResult.Succeeded)
+        {
+            var errors = createResult.Errors.Select(x => x.Description).ToArray();
+            return BadRequest(errors);
+        }
+
+        var roleResult = await userManager.AddToRoleAsync(newUser, RoleNames.User);
+        if (!roleResult.Succeeded)
+        {
+            var errors = roleResult.Errors.Select(x => x.Description).ToArray();
+            return BadRequest(errors);
+        }
+
+        await signInManager.SignInAsync(newUser, false);
+
+        var resultDto = await GetUserDto(userManager.Users).SingleAsync(x => x.UserName == newUser.UserName);
         return Ok(resultDto);
     }
 
@@ -162,26 +197,8 @@ public class AuthenticationController : ControllerBase
         {
             Id = x.Id,
             UserName = x.UserName!,
-            Roles = x.UserRoles.Select(y => y.Role!.Name).ToArray()!
+            Roles = x.UserRoles.Select(y => y.Role!.Name).ToArray()!,
+            ByteBalance = x.ByteBalance
         });
-    }
-
-    private static bool IsSupportedProvider(string provider)
-    {
-        return provider.Equals("Google", StringComparison.OrdinalIgnoreCase)
-            || provider.Equals("Facebook", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsSafeLocalReturnUrl(string? returnUrl)
-    {
-        if (string.IsNullOrWhiteSpace(returnUrl))
-        {
-            return false;
-        }
-
-        // Allow only local relative paths to avoid open redirects.
-        return returnUrl.StartsWith("/", StringComparison.Ordinal)
-               && !returnUrl.StartsWith("//", StringComparison.Ordinal)
-               && !returnUrl.StartsWith("/\\", StringComparison.Ordinal);
     }
 }
