@@ -27,6 +27,7 @@ public class UsersController : ControllerBase
         {
             UserName = dto.UserName,
         };
+
         var createResult = await userManager.CreateAsync(newUser, dto.Password);
         if (!createResult.Succeeded)
         {
@@ -41,7 +42,7 @@ public class UsersController : ControllerBase
                 return BadRequest();
             }
         }
-        catch (InvalidOperationException e) when(e.Message.StartsWith("Role") && e.Message.EndsWith("does not exist."))
+        catch (InvalidOperationException e) when (e.Message.StartsWith("Role") && e.Message.EndsWith("does not exist."))
         {
             return BadRequest();
         }
@@ -52,7 +53,8 @@ public class UsersController : ControllerBase
         {
             Id = newUser.Id,
             Roles = dto.Roles,
-            UserName = newUser.UserName,
+            UserName = newUser.UserName!,
+            ByteBalance = newUser.ByteBalance
         });
     }
 }

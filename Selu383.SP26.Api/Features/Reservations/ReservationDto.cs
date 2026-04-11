@@ -1,0 +1,18 @@
+﻿namespace Selu383.SP26.Api.Features.Reservations;
+
+public class ReservationDto
+{
+    public int Id { get; set; }
+
+    public int TableId { get; set; }
+
+    public int LocationId { get; set; }
+
+    public DateTime ReservedFor { get; set; }
+
+    public int PartySize { get; set; }
+
+    public string Name { get; set; } = string.Empty;
+
+    public string Status { get; set; } = string.Empty;
+}
