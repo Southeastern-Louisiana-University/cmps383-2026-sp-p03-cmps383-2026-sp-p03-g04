@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Http;
 using Selu383.SP26.Api.Data;
 using Selu383.SP26.Api.Features.Auth;
 
@@ -11,23 +10,6 @@ builder.Services.AddDbContext<DataContext>(options =>
 
 builder.Services.AddIdentity<User, Role>()
     .AddEntityFrameworkStores<DataContext>();
-
-builder.Services
-    .AddAuthentication()
-    .AddGoogle(options =>
-    {
-        options.ClientId = builder.Configuration["Authentication:Google:ClientId"] ?? "";
-        options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? "";
-        options.CorrelationCookie.SameSite = SameSiteMode.None;
-        options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
-    })
-    .AddFacebook(options =>
-    {
-        options.AppId = builder.Configuration["Authentication:Facebook:AppId"] ?? "";
-        options.AppSecret = builder.Configuration["Authentication:Facebook:AppSecret"] ?? "";
-        options.CorrelationCookie.SameSite = SameSiteMode.None;
-        options.CorrelationCookie.SecurePolicy = CookieSecurePolicy.Always;
-    });
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
