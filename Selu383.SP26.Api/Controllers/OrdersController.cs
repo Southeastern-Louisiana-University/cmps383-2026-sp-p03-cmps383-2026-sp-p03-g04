@@ -34,10 +34,6 @@ public class OrdersController(DataContext dataContext) : ControllerBase
                 return Unauthorized();
             }
         }
-        else if (dto.BytesToRedeem > 0)
-        {
-            return BadRequest("You must be logged in to redeem Bytes.");
-        }
 
         var requestedMenuItemIds = dto.Items
             .Select(x => x.MenuItemId)
@@ -124,13 +120,22 @@ public class OrdersController(DataContext dataContext) : ControllerBase
             subtotal += finalPrice;
         }
 
-        var requestedBytes = Math.Max(dto.BytesToRedeem, 0);
-        var maxRedeemableBytes = (int)Math.Floor(subtotal * 100m * RewardsConstants.MaxDiscountPercentage);
+        if (!TryGetRequestedBytes(dto.RedemptionChoice, subtotal, out var requestedBytes))
+        {
+            return BadRequest("Invalid redemption choice. Use none, ten, twentyfive, fifty, or full.");
+        }
 
-        var bytesRedeemed = currentUser == null
-            ? 0
-            : Math.Min(currentUser.ByteBalance, Math.Min(requestedBytes, maxRedeemableBytes));
+        if (requestedBytes > 0 && currentUser == null)
+        {
+            return BadRequest("You must be logged in to redeem Bytes.");
+        }
 
+        if (currentUser != null && requestedBytes > currentUser.ByteBalance)
+        {
+            return BadRequest("Not enough Bytes for that redemption option.");
+        }
+
+        var bytesRedeemed = currentUser == null ? 0 : requestedBytes;
         var discountAmount = bytesRedeemed / 100m;
         var total = subtotal - discountAmount;
 
@@ -208,6 +213,38 @@ public class OrdersController(DataContext dataContext) : ControllerBase
         }
 
         return Ok(MapOrder(order));
+    }
+
+    private static bool TryGetRequestedBytes(string? redemptionChoice, decimal subtotal, out int requestedBytes)
+    {
+        var subtotalInCents = (int)Math.Round(subtotal * 100m, MidpointRounding.AwayFromZero);
+
+        switch ((redemptionChoice ?? "none").Trim().ToLowerInvariant())
+        {
+            case "none":
+                requestedBytes = 0;
+                return true;
+
+            case "ten":
+                requestedBytes = (int)Math.Ceiling(subtotalInCents * 0.10m);
+                return true;
+
+            case "twentyfive":
+                requestedBytes = (int)Math.Ceiling(subtotalInCents * 0.25m);
+                return true;
+
+            case "fifty":
+                requestedBytes = (int)Math.Ceiling(subtotalInCents * 0.50m);
+                return true;
+
+            case "full":
+                requestedBytes = subtotalInCents;
+                return true;
+
+            default:
+                requestedBytes = 0;
+                return false;
+        }
     }
 
     private static OrderDto MapOrder(Order order)
