@@ -108,7 +108,7 @@ const PROMOS = [
 ];
 
 const LOCATION_ID = 1;
-const BYTES_PER_DOLLAR_SPENT = 5;
+
 
 function App() {
     const [activeTab, setActiveTab] = useState('Home');
@@ -837,14 +837,7 @@ function App() {
         });
     }
 
-    function slugifyMenuName(name: string) {
-        return name
-            .toLowerCase()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .replace(/[^a-z0-9]+/g, '-')
-            .replace(/(^-|-$)/g, '');
-    }
+    
 
     function getMenuImageSrc(item: MenuItem) {
         const imageMap: Record<string, string> = {
