@@ -7,7 +7,8 @@ public class CheckoutDto
     [Required, MinLength(1)]
     public CheckoutItemDto[] Items { get; set; } = Array.Empty<CheckoutItemDto>();
 
-    public int BytesToRedeem { get; set; } = 0;
+    [Required]
+    public string RedemptionChoice { get; set; } = "none";
 }
 
 public class CheckoutItemDto

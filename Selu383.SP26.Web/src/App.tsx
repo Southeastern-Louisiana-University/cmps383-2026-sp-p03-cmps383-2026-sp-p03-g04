@@ -97,18 +97,18 @@ type OrderHistoryOrder = {
 type CheckoutResult = {
     order: OrderHistoryOrder;
     newByteBalance: number;
-    byteDollarValue: number;
 };
 
+type RedemptionChoice = 'none' | 'ten' | 'twentyfive' | 'fifty' | 'full';
+
 const PROMOS = [
-    '📱 App Exclusive: 20% off your first mobile order!',
-    '☕ Double Bytes Happy Hour: 2PM - 4PM',
-    '✨ Try the new Iced Cyan Macchiato today!'
+    '📱 Caffeinated Lions App Exclusive: 20% off your first mobile order!',
+    '🦁 Caffeinated Lions Happy Hour: 2PM - 4PM',
+    '✨ Try the featured Caffeinated Lions special today!'
 ];
 
 const LOCATION_ID = 1;
 const BYTES_PER_DOLLAR_SPENT = 5;
-const MAX_DISCOUNT_PERCENT = 0.10;
 
 function App() {
     const [activeTab, setActiveTab] = useState('Home');
@@ -118,10 +118,7 @@ function App() {
     const [activeOrder, setActiveOrder] = useState<{ itemCount: number; waitTime: number } | null>(null);
     const [reservation, setReservation] = useState<ReservationItem | null>(null);
 
-    const [resDate, setResDate] = useState(() => {
-        const now = new Date();
-        return now.toISOString().split('T')[0];
-    });
+    const [resDate, setResDate] = useState(() => getLocalDateInputValue());
     const [resTime, setResTime] = useState('');
     const [selectedTable, setSelectedTable] = useState<number | null>(null);
     const [partySize, setPartySize] = useState(2);
@@ -152,7 +149,7 @@ function App() {
     const [signupPassword, setSignupPassword] = useState('');
     const [signupConfirmPassword, setSignupConfirmPassword] = useState('');
 
-    const [applyRewards, setApplyRewards] = useState(false);
+    const [redemptionChoice, setRedemptionChoice] = useState<RedemptionChoice>('none');
     const [checkoutBusy, setCheckoutBusy] = useState(false);
 
     const [orderHistory, setOrderHistory] = useState<OrderHistoryOrder[]>([]);
@@ -180,13 +177,12 @@ function App() {
     const [showAppPrefs, setShowAppPrefs] = useState(false);
 
     const cartTotal = cartItems.reduce((sum, item) => sum + item.price, 0);
-    const maxRedeemableBytes = currentUser
-        ? Math.min(currentUser.byteBalance, Math.floor(cartTotal * 100 * MAX_DISCOUNT_PERCENT))
-        : 0;
-    const bytesToRedeemNow = applyRewards && currentUser ? maxRedeemableBytes : 0;
+    const subtotalCents = Math.round(cartTotal * 100);
+    const requestedBytes = getRequestedBytes(redemptionChoice, subtotalCents);
+    const canRedeemChoice = !!currentUser && currentUser.byteBalance >= requestedBytes;
+    const bytesToRedeemNow = canRedeemChoice ? requestedBytes : 0;
     const rewardsDiscountPreview = bytesToRedeemNow / 100;
     const finalTotalPreview = Math.max(cartTotal - rewardsDiscountPreview, 0);
-    const availableByteDollarValue = (currentUser?.byteBalance ?? 0) / 100;
 
     const categories = Array.from(new Set(menuItems.map((item) => item.category))).sort();
     const displayCategories =
@@ -238,7 +234,7 @@ function App() {
             loadOrderHistory();
         } else {
             setOrderHistory([]);
-            setApplyRewards(false);
+            setRedemptionChoice('none');
         }
     }, [currentUser?.id]);
 
@@ -247,6 +243,12 @@ function App() {
             setSelectedTable(null);
         }
     }, [tables, selectedTable]);
+
+    useEffect(() => {
+        if (redemptionChoice !== 'none' && (!currentUser || currentUser.byteBalance < requestedBytes)) {
+            setRedemptionChoice('none');
+        }
+    }, [currentUser, requestedBytes, redemptionChoice]);
 
     async function loadCurrentUser() {
         try {
@@ -460,7 +462,7 @@ function App() {
 
             setCurrentUser(null);
             setOrderHistory([]);
-            setApplyRewards(false);
+            setRedemptionChoice('none');
             setToastMessage('Logged out.');
             setTimeout(() => setToastMessage(''), 3000);
         } catch (error) {
@@ -568,7 +570,7 @@ function App() {
                         menuItemId: item.menuItemId,
                         selectedOptions: item.selectedOptions
                     })),
-                    bytesToRedeem: bytesToRedeemNow
+                    redemptionChoice
                 })
             });
 
@@ -589,7 +591,7 @@ function App() {
             });
 
             setCartItems([]);
-            setApplyRewards(false);
+            setRedemptionChoice('none');
 
             if (currentUser) {
                 setCurrentUser({
@@ -804,8 +806,24 @@ function App() {
         return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
     }
 
+    function getLocalDateInputValue(date = new Date()) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function parseApiLocalDateTime(value: string) {
+        const normalized = value.replace('Z', '');
+        const [datePart, timePart = '00:00:00'] = normalized.split('T');
+        const [year, month, day] = datePart.split('-').map(Number);
+        const [hours, minutes, seconds = 0] = timePart.split(':').map(Number);
+
+        return new Date(year, month - 1, day, hours, minutes, seconds, 0);
+    }
+
     function formatDisplayDateTime(dateTimeString: string) {
-        const date = new Date(dateTimeString);
+        const date = parseApiLocalDateTime(dateTimeString);
 
         if (Number.isNaN(date.getTime())) {
             return dateTimeString;
@@ -819,18 +837,94 @@ function App() {
         });
     }
 
+    function slugifyMenuName(name: string) {
+        return name
+            .toLowerCase()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-z0-9]+/g, '-')
+            .replace(/(^-|-$)/g, '');
+    }
+
+    function getMenuImageSrc(item: MenuItem) {
+        const imageMap: Record<string, string> = {
+            'Iced Latte': '/images/menu/iced-latte.jpg',
+            'Supernova': '/images/menu/supernova-espresso.jpg',
+            'Roaring Frappe': '/images/menu/roaring-frappe.jpg',
+            'Black & White Cold Brew': '/images/menu/black-and-white-cold-brew.jpg',
+            'Strawberry Limeade': '/images/menu/strawberry-lemonade.jpg',
+            'Shaken Lemonade': '/images/menu/shaken-lemonade.jpg',
+
+            'Mannino Honey Crepe': '/images/menu/mannino-honey-crepe.jpg',
+            'Downtowner': '/images/menu/downtowner.jpg',
+            'Funky Monkey': '/images/menu/menu-placeholder.svg',
+            "Le S'mores": '/images/menu/le-smores.jpg',
+            'Strawberry Fields': '/images/menu/menu-placeholder.svg',
+            'Bonjour': '/images/menu/bonjour.jpg',
+            'Banana Foster': '/images/menu/banana-foster-crepe.jpg',
+
+            "Matt's Scrambled Eggs": "/images/menu/matt's-scrambled-eggs.jpg",
+            'Meanie Mushroom': '/images/menu/meanie-mushroom.jpg',
+            'Turkey Club': '/images/menu/turkey-club.jpg',
+            'Green Machine': '/images/menu/green-machine.jpg',
+            'Perfect Pair': '/images/menu/perfect-pair.jpg',
+            'Crepe Fromage': '/images/menu/crepe-fromage.jpg',
+            'Farmers Market Crepe': '/images/menu/farmers-market-crepes.jpg',
+
+            'Travis Special': '/images/menu/travis-special.jpg',
+            'Crème Brulagel': '/images/menu/creme-brulagel.jpg',
+            'The Fancy One': '/images/menu/the-fancy-one.jpg',
+            'Breakfast Bagel': '/images/menu/breakfast-bagel.jpg',
+            'The Classic': '/images/menu/the-classic.jpg'
+        };
+
+        if (item.imageUrl && item.imageUrl.trim().length > 0) {
+            return item.imageUrl;
+        }
+
+        return imageMap[item.name] || '/images/menu/menu-placeholder.svg';
+    }
+    function getRequestedBytes(choice: RedemptionChoice, subtotalInCents: number) {
+        switch (choice) {
+            case 'ten':
+                return Math.ceil(subtotalInCents * 0.10);
+            case 'twentyfive':
+                return Math.ceil(subtotalInCents * 0.25);
+            case 'fifty':
+                return Math.ceil(subtotalInCents * 0.50);
+            case 'full':
+                return subtotalInCents;
+            default:
+                return 0;
+        }
+    }
+
     function getTableLabelById(tableId: number) {
         return tables.find((table) => table.id === tableId)?.label ?? `Table ${tableId}`;
     }
 
     const renderMenuCard = (item: MenuItem) => (
         <div key={item.id} className="coffee-card regular-outline">
+            <div className="menu-image-wrap">
+                <img
+                    src={getMenuImageSrc(item)}
+                    alt={item.name}
+                    className="menu-image"
+                    onError={(e) => {
+                        const target = e.currentTarget;
+                        target.onerror = null;
+                        target.src = '/images/menu/menu-placeholder.svg';
+                    }}
+                />
+            </div>
+
             <div className="coffee-info">
                 <h3>{item.name}</h3>
                 <p>{item.description}</p>
                 <span className="price">${item.price.toFixed(2)}</span>
             </div>
-            <button className="order-btn" onClick={() => handleAddMenuItem(item)}>
+
+            <button className="order-btn menu-order-btn" onClick={() => handleAddMenuItem(item)}>
                 + Add
             </button>
         </div>
@@ -903,7 +997,7 @@ function App() {
             {activeTab === 'Home' && (
                 <>
                     <header className="header">
-                        <h1>Brew & Byte</h1>
+                        <h1><h1>Caffeinated Lions</h1></h1>
                         <p>Good morning! Skip the line, order ahead.</p>
                     </header>
 
@@ -1114,7 +1208,7 @@ function App() {
                                 className="form-input"
                                 value={resDate}
                                 onChange={(e) => setResDate(e.target.value)}
-                                min={new Date().toISOString().split('T')[0]}
+                                min={getLocalDateInputValue()}
                             />
 
                             <label style={{ marginTop: '16px' }}>Time</label>
@@ -1229,34 +1323,36 @@ function App() {
 
                                 <div className="receipt-divider"></div>
 
-                                <div
-                                    style={{
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'space-between',
-                                        marginBottom: '12px'
-                                    }}
-                                >
-                                    <label
-                                        style={{
-                                            fontSize: '14px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '8px',
-                                            cursor: currentUser ? 'pointer' : 'not-allowed',
-                                            opacity: currentUser ? 1 : 0.6
-                                        }}
-                                    >
-                                        <input
-                                            type="checkbox"
-                                            checked={applyRewards}
-                                            disabled={!currentUser || currentUser.byteBalance <= 0}
-                                            onChange={(e) => setApplyRewards(e.target.checked)}
-                                            style={{ accentColor: 'var(--primary)', width: '16px', height: '16px' }}
-                                        />
-                                        Use Byte Rewards
-                                    </label>
-                                    <span style={{ fontSize: '12px', color: '#888' }}>Max 10% off</span>
+                                <div style={{ marginBottom: '12px' }}>
+                                    <p style={{ fontSize: '14px', marginBottom: '8px' }}>Use Bytes</p>
+
+                                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                        {[
+                                            { key: 'none', label: 'None' },
+                                            { key: 'ten', label: '10%' },
+                                            { key: 'twentyfive', label: '25%' },
+                                            { key: 'fifty', label: '50%' },
+                                            { key: 'full', label: 'Pay in Full' }
+                                        ].map((option) => {
+                                            const key = option.key as RedemptionChoice;
+                                            const requiredBytes = getRequestedBytes(key, subtotalCents);
+                                            const disabled =
+                                                key !== 'none' &&
+                                                (!currentUser || currentUser.byteBalance < requiredBytes);
+
+                                            return (
+                                                <button
+                                                    key={key}
+                                                    type="button"
+                                                    className={`action-btn ${redemptionChoice === key ? 'primary-action' : 'secondary-action'}`}
+                                                    disabled={disabled}
+                                                    onClick={() => setRedemptionChoice(key)}
+                                                >
+                                                    {option.label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
                                 </div>
 
                                 {!currentUser && (
@@ -1267,7 +1363,7 @@ function App() {
 
                                 {currentUser && (
                                     <p style={{ fontSize: '12px', color: '#888', marginBottom: '12px' }}>
-                                        Balance: {currentUser.byteBalance} Bytes (${availableByteDollarValue.toFixed(2)})
+                                        Balance: {currentUser.byteBalance} Bytes
                                     </p>
                                 )}
 
@@ -1312,6 +1408,104 @@ function App() {
                 </>
             )}
 
+            {activeTab === 'Orders' && (
+                <>
+                    <header className="header">
+                        <button className="text-btn" style={{ marginBottom: '12px', padding: 0 }} onClick={() => setActiveTab('Profile')}>
+                            ← Back to Profile
+                        </button>
+                        <h1>Order History</h1>
+                        <p>View all of your past orders.</p>
+                    </header>
+
+                    <main className="menu-container">
+                        {!currentUser ? (
+                            <div className="reservation-card regular-outline">
+                                <p>You need to sign in to view order history.</p>
+                            </div>
+                        ) : orderHistoryLoading ? (
+                            <div className="reservation-card regular-outline">
+                                <p>Loading order history...</p>
+                            </div>
+                        ) : orderHistory.length > 0 ? (
+                            <div className="settings-list">
+                                {orderHistory.map((order) => (
+                                    <div key={order.id} className="reservation-card regular-outline">
+                                        <div
+                                            style={{
+                                                display: 'flex',
+                                                justifyContent: 'space-between',
+                                                alignItems: 'center',
+                                                marginBottom: '10px'
+                                            }}
+                                        >
+                                            <strong>Order #{order.id}</strong>
+                                            <span className="wait-time">{formatDisplayDateTime(order.createdAt)}</span>
+                                        </div>
+
+                                        <div style={{ marginBottom: '12px' }}>
+                                            {order.items.map((item, index) => (
+                                                <div key={`${order.id}-${item.menuItemId}-${index}`} style={{ marginBottom: '10px' }}>
+                                                    <div className="receipt-item">
+                                                        <span style={{ fontWeight: 'bold' }}>{item.name}</span>
+                                                        <span>${item.finalPrice.toFixed(2)}</span>
+                                                    </div>
+
+                                                    {item.selections.map((selection, i) => (
+                                                        <div
+                                                            key={`${selection.groupName}-${selection.optionName}-${i}`}
+                                                            style={{
+                                                                fontSize: '12px',
+                                                                color: 'var(--text)',
+                                                                opacity: 0.7,
+                                                                marginLeft: '8px'
+                                                            }}
+                                                        >
+                                                            - {selection.groupName}: {selection.optionName}
+                                                            {selection.priceModifier > 0
+                                                                ? ` (+$${selection.priceModifier.toFixed(2)})`
+                                                                : ''}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        <div className="receipt-divider"></div>
+
+                                        <div className="receipt-item">
+                                            <span>Subtotal</span>
+                                            <span>${order.subtotal.toFixed(2)}</span>
+                                        </div>
+
+                                        {order.discountAmount > 0 && (
+                                            <div className="receipt-item" style={{ color: '#4ade80' }}>
+                                                <span>Discount</span>
+                                                <span>- ${order.discountAmount.toFixed(2)}</span>
+                                            </div>
+                                        )}
+
+                                        <div className="receipt-item total-row" style={{ marginBottom: '12px' }}>
+                                            <span>Total</span>
+                                            <span className="price">${order.total.toFixed(2)}</span>
+                                        </div>
+
+                                        <p style={{ fontSize: '12px', opacity: 0.8 }}>
+                                            Earned {order.bytesEarned} Bytes
+                                            {order.bytesRedeemed > 0 ? ` • Redeemed ${order.bytesRedeemed} Bytes` : ''}
+                                        </p>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="reservation-card regular-outline">
+                                <p>No orders yet.</p>
+                            </div>
+                        )}
+                    </main>
+                </>
+            )}
+
             {activeTab === 'Profile' && (
                 <>
                     <header className="header">
@@ -1349,7 +1543,7 @@ function App() {
                                         ></div>
                                     </div>
                                     <p style={{ fontSize: '13px', color: '#888', marginTop: '12px' }}>
-                                        Value: ${availableByteDollarValue.toFixed(2)} • Earn {BYTES_PER_DOLLAR_SPENT} Bytes per $1 spent
+                                        
                                     </p>
                                 </div>
 
@@ -1395,7 +1589,9 @@ function App() {
                                 <h2 className="section-title">Settings</h2>
                                 <div className="settings-list">
                                     <button className="settings-btn regular-outline">Payment Methods</button>
-                                    <button className="settings-btn regular-outline">Order History</button>
+                                    <button className="settings-btn regular-outline" onClick={() => setActiveTab('Orders')}>
+                                        Order History
+                                    </button>
                                     <button className="settings-btn regular-outline" onClick={() => setShowAppPrefs((prev) => !prev)}>
                                         App Preferences
                                         <span style={{ opacity: 0.85, marginLeft: 8 }}>{showAppPrefs ? '▾' : '▸'}</span>
@@ -1531,7 +1727,7 @@ function App() {
                                         <span className="points-label">Guest Mode</span>
                                     </div>
                                     <p style={{ fontSize: '13px', color: '#888', marginTop: '12px' }}>
-                                        Earn {BYTES_PER_DOLLAR_SPENT} Bytes per $1 spent • 1 Byte = $0.01 • Max {MAX_DISCOUNT_PERCENT * 100}% off
+                                        
                                     </p>
                                 </div>
 
