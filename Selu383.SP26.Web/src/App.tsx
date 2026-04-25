@@ -850,9 +850,9 @@ function App() {
 
             'Mannino Honey Crepe': '/images/menu/mannino-honey-crepe.jpg',
             'Downtowner': '/images/menu/downtowner.jpg',
-            'Funky Monkey': '/images/menu/menu-placeholder.svg',
+            'Funky Monkey': '/images/menu/funky-monkey.jpg',
             "Le S'mores": '/images/menu/le-smores.jpg',
-            'Strawberry Fields': '/images/menu/menu-placeholder.svg',
+            'Strawberry Fields': '/images/menu/strawberry-fields.jpg',
             'Bonjour': '/images/menu/bonjour.jpg',
             'Banana Foster': '/images/menu/banana-foster-crepe.jpg',
 
