@@ -28,7 +28,29 @@ body {
 	box-shadow: 0 0 30px rgba(34, 211, 238, 0.15);
 	overflow: hidden;
 }
+.brand-header {
+	display: flex;
+	align-items: center;
+	gap: 14px;
+}
 
+.brand-logo {
+	width: 64px;
+	height: 64px;
+	object-fit: contain;
+	border-radius: 12px;
+	flex-shrink: 0;
+}
+
+.brand-copy h1 {
+	margin: 0;
+}
+
+.brand-copy p {
+	margin: 4px 0 0 0;
+	color: var(--muted);
+	font-size: 14px;
+}
 /* --- THEME OUTLINES & GLOWS --- */
 .regular-outline {
 	border: 1px solid var(--border);

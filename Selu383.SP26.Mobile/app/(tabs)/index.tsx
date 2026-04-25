@@ -727,8 +727,17 @@ export default function MobileCaffeinatedLionsScreen() {
         return (
             <>
                 <View style={styles.header}>
-                    <Text style={[styles.headerTitle, { color: theme.text }]}>Caffeinated Lions</Text>
-                    <Text style={[styles.headerSubtitle, { color: theme.muted }]}>Skip the line, order ahead.</Text>
+                    <View style={styles.brandHeader}>
+                        <Image
+                            source={require('../../assets/images/logo.png')}
+                            style={styles.brandLogo}
+                            resizeMode="contain"
+                        />
+                        <View style={{ flex: 1 }}>
+                            <Text style={[styles.brandTitle, { color: theme.text }]}>Caffeinated Lions</Text>
+                            <Text style={[styles.brandSubtitle, { color: theme.muted }]}>Coffee • Crepes • Rewards</Text>
+                        </View>
+                    </View>
                 </View>
 
                 {(activeOrder || reservation) && (
@@ -1846,6 +1855,26 @@ const styles = StyleSheet.create({
     navButton: {
         paddingHorizontal: 4,
         alignItems: 'center',
+    },
+    brandHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+
+    brandLogo: {
+        width: 58,
+        height: 58,
+    },
+
+    brandTitle: {
+        fontSize: 24,
+        fontWeight: '900',
+        marginBottom: 2,
+    },
+
+    brandSubtitle: {
+        fontSize: 14,
     },
     modalBackdrop: {
         position: 'absolute',

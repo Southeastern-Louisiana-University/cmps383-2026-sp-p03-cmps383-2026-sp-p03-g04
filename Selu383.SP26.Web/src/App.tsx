@@ -850,9 +850,9 @@ function App() {
 
             'Mannino Honey Crepe': '/images/menu/mannino-honey-crepe.jpg',
             'Downtowner': '/images/menu/downtowner.jpg',
-            'Funky Monkey': '/images/menu/menu-placeholder.svg',
+            'Funky Monkey': '/images/menu/funky-monkey.jpg',
             "Le S'mores": '/images/menu/le-smores.jpg',
-            'Strawberry Fields': '/images/menu/menu-placeholder.svg',
+            'Strawberry Fields': '/images/menu/strawberry-fields.jpg',
             'Bonjour': '/images/menu/bonjour.jpg',
             'Banana Foster': '/images/menu/banana-foster-crepe.jpg',
 
@@ -990,8 +990,13 @@ function App() {
             {activeTab === 'Home' && (
                 <>
                     <header className="header">
-                        <h1><h1>Caffeinated Lions</h1></h1>
-                        <p>Good morning! Skip the line, order ahead.</p>
+                        <div className="brand-header">
+                            <img src="/logo.png" alt="Caffeinated Lions logo" className="brand-logo" />
+                            <div className="brand-copy">
+                                <h1>Caffeinated Lions</h1>
+                                <p>Coffee • Crepes • Rewards</p>
+                            </div>
+                        </div>
                     </header>
 
                     <main className="menu-container">
