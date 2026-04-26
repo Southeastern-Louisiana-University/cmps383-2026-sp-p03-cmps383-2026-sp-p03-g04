@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import './App.css';
 
 type MenuCustomizationOption = {
@@ -989,10 +989,17 @@ function App() {
 
             {activeTab === 'Home' && (
                 <>
-                    <header className="header">
-                        <h1><h1>Caffeinated Lions</h1></h1>
-                        <p>Good morning! Skip the line, order ahead.</p>
-                    </header>
+                    <header className="header" style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+    <img 
+        src="/images/menu/Caffeinated-Lions.jpg" 
+        alt="Caffeinated Lions Logo" 
+        style={{ width: '64px', height: '64px', borderRadius: '12px', objectFit: 'cover' }} 
+    />
+    <div>
+        <h1 style={{ margin: 0 }}>Caffeinated Lions</h1>
+        <p style={{ margin: 0, marginTop: '4px', opacity: 0.8 }}>Good morning! Skip the line, order ahead.</p>
+    </div>
+</header>
 
                     <main className="menu-container">
                         {(activeOrder || reservation) && (
